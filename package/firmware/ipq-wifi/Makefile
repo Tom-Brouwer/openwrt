@@ -26,7 +26,8 @@ endef
 ALLWIFIBOARDS:= \
 	avm_fritzrepeater-1200 \
 	linksys_ea8300 \
-	qxwlan_e2600ac
+	qxwlan_e2600ac \
+	ezviz_w3
 
 ALLWIFIPACKAGES:=$(foreach BOARD,$(ALLWIFIBOARDS),ipq-wifi-$(BOARD))
 
@@ -92,5 +93,6 @@ endef
 $(eval $(call generate-ipq-wifi-package,avm_fritzrepeater-1200,AVM FRITZRepeater 1200))
 $(eval $(call generate-ipq-wifi-package,linksys_ea8300,Linksys EA8300))
 $(eval $(call generate-ipq-wifi-package,qxwlan_e2600ac,Qxwlan E2600AC))
+$(eval $(call generate-ipq-wifi-package,ezviz_w3,EZVIZ W3))
 
 $(foreach PACKAGE,$(ALLWIFIPACKAGES),$(eval $(call BuildPackage,$(PACKAGE))))

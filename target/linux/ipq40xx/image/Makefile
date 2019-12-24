@@ -487,4 +487,15 @@ define Device/zyxel_wre6606
 endef
 TARGET_DEVICES += zyxel_wre6606
 
+define Device/ezviz_w3
+	$(call Device/FitImage)
+	DEVICE_VENDOR := EZVIZ
+	DEVICE_MODEL := W3
+	DEVICE_DTS := qcom-ipq4018-w3
+	IMAGES := sysupgrade.bin
+	IMAGE/sysupgrade.bin := append-kernel | append-rootfs | pad-rootfs | append-metadata
+	DEVICE_PACKAGES := -kmod-ath10k-ct -ath10k-firmware-qca4019-ct kmod-ath10k ath10k-firmware-qca4019 ipq-wifi-ezviz_w3
+endef
+TARGET_DEVICES += ezviz_w3
+
 $(eval $(call BuildImage))
