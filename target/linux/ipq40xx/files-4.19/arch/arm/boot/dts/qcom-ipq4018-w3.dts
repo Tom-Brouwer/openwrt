@@ -1,5 +1,5 @@
 /* Copyright (c) 2015, The Linux Foundation. All rights reserved.
- * Copyright (c) 2018, Tom Brouwer <tombrouwer@outlook.com>
+ * Copyright (c) 2019, Tom Brouwer <tombrouwer@outlook.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -31,10 +31,6 @@
 		led-upgrade = &led_status_green;
 	};
 
-	chosen {
-		bootargs-append = " mtdparts=";
-	};
-
 	soc {
 		rng@22000 {
 			status = "okay";
@@ -42,6 +38,8 @@
 
 		mdio@90000 {
 			status = "okay";
+            reset-gpios = <&tlmm 59 GPIO_ACTIVE_LOW>;
+            reset-delay-us = <5000>;
 		};
 
 		ess-psgmii@98000 {
@@ -72,7 +70,7 @@
 			qcom,wifi_noc_memtype_m0_m2 = <TCSR_WIFI_NOC_MEMTYPE_M0_M2>;
 		};
 
-		crypto@8e20000 {
+        crypto@8e3a000 {
 			status = "okay";
 		};
 
@@ -174,56 +172,50 @@
 
 			partition1@40000 {
 				label = "MIBIB";
-				reg = <0x00040000 0x00060000>;
+				reg = <0x00040000 0x00020000>;
 				read-only;
 			};
 
 			partition2@60000 {
 				label = "QSEE";
-				reg = <0x00060000 0x000c0000>;
+				reg = <0x00060000 0x00060000>;
 				read-only;
 			};
 
 			partition3@c0000 {
 				label = "CDT";
-				reg = <0x000c0000 0x000d0000>;
+				reg = <0x000c0000 0x00010000>;
 				read-only;
 			};
 
 			partition4@d0000 {
 				label = "DDRPARAMS";
-				reg = <0x000d0000 0x000e0000>;
+				reg = <0x000d0000 0x00010000>;
 				read-only;
 			};
 
 			partition5@E0000 {
 				label = "APPSBLENV";
-				reg = <0x000e0000 0x000f0000>;
+				reg = <0x000e0000 0x00010000>;
 				read-only;
 			};
 
 			partition6@F0000 {
 				label = "APPSBL";
-				reg = <0x000f0000 0x000170000>;
+				reg = <0x000f0000 0x00080000>;
 				read-only;
 			};
 
 			partition7@170000 {
 				label = "ART";
-				reg = <0x00170000 0x00180000>;
-				read-only;
-			};
-
-            partition8@180000 {
-				label = "HLOS";
-				reg = <0x00180000 0x00580000>;
+				reg = <0x00170000 0x00010000>;
 				read-only;
 			};
 
 			partition9@580000 {
 				compatible = "denx,fit";
-				label = "rootfs";
-				reg = <0x00580000 0x01000000>;
+				label = "firmware";
+				reg = <0x00180000 0x00e80000>;
 			};
 		};
 	};
