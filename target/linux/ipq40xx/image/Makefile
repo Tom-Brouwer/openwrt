@@ -508,9 +508,8 @@ define Device/ezviz_w3
 	KERNEL_SIZE := 4096k
 	IMAGE_SIZE := 14848k
 	SOC := qcom-ipq4018
-	DEVICE_DTS := qcom-ipq4018-w3
 	IMAGES := sysupgrade.bin
-	IMAGE/sysupgrade.bin := append-kernel | pad-to $$$${KERNEL_SIZE} | append-rootfs | pad-rootfs | append-metadata
+	IMAGE/sysupgrade.bin := append-kernel | append-rootfs | pad-rootfs | append-metadata
 	DEVICE_PACKAGES := -kmod-ath10k-ct kmod-ath10k-ct-smallbuffers ipq-wifi-ezviz_w3
 endef
 TARGET_DEVICES += ezviz_w3
