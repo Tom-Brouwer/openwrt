@@ -21,8 +21,8 @@
 #include <dt-bindings/soc/qcom,tcsr.h>
 
 / {
-	model = "EZVIZ W3";
-	compatible = "ezviz,w3";
+	model = "EZVIZ CS-W3-WD1200G EUP";
+	compatible = "ezviz,cs-w3-wd1200g-eup";
 
     aliases {
 		led-boot = &led_status_green;
@@ -249,10 +249,10 @@
 
 &wifi0 {
 	status = "okay";
-    qcom,ath10k-calibration-variant = "ezviz-w3";
+    qcom,ath10k-calibration-variant = "ezviz-cs-w3-wd1200g-eup";
 };
 
 &wifi1 {
 	status = "okay";
-    qcom,ath10k-calibration-variant = "ezviz-w3";
+    qcom,ath10k-calibration-variant = "ezviz-cs-w3-wd1200g-eup";
 };

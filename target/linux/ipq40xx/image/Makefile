@@ -500,18 +500,20 @@ define Device/zyxel_wre6606
 endef
 TARGET_DEVICES += zyxel_wre6606
 
-define Device/ezviz_w3
+define Device/ezviz_cs-w3-wd1200g-eup
 	$(call Device/FitImage)
 	DEVICE_VENDOR := EZVIZ
-	DEVICE_MODEL := W3
+	DEVICE_MODEL := CS-W3-WD1200G
+	DEVICE_VARIANT := EUP
+	BOARD_NAME := cs-w3-wd1200g-eup
 	DEVICE_DTS_CONFIG := config@4
 	KERNEL_SIZE := 4096k
 	IMAGE_SIZE := 14848k
 	SOC := qcom-ipq4018
 	IMAGES := sysupgrade.bin
 	IMAGE/sysupgrade.bin := append-kernel | append-rootfs | pad-rootfs | append-metadata
-	DEVICE_PACKAGES := -kmod-ath10k-ct kmod-ath10k-ct-smallbuffers ipq-wifi-ezviz_w3
+	DEVICE_PACKAGES := -kmod-ath10k-ct kmod-ath10k-ct-smallbuffers ipq-wifi-ezviz_cs-w3-wd1200g-eup
 endef
-TARGET_DEVICES += ezviz_w3
+TARGET_DEVICES += ezviz_cs-w3-wd1200g-eup
 
 $(eval $(call BuildImage))
