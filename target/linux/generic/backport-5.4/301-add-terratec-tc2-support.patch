@@ -1,0 +1,178 @@
+--- a/drivers/media/tuners/si2157.c
++++ b/drivers/media/tuners/si2157.c
+@@ -118,6 +118,11 @@
+ 			goto err;
+ 	}
+ 
++	if (dev->dont_load_firmware) {
++		dev_info(&client->dev, "device is buggy, skipping firmware download\n");
++		goto skip_fw_download;
++	}
++
+ 	/* query chip revision */
+ 	memcpy(cmd.args, "\x02", 1);
+ 	cmd.wlen = 1;
+@@ -440,6 +445,7 @@
+ 	i2c_set_clientdata(client, dev);
+ 	dev->fe = cfg->fe;
+ 	dev->inversion = cfg->inversion;
++	dev->dont_load_firmware = cfg->dont_load_firmware;
+ 	dev->if_port = cfg->if_port;
+ 	dev->chiptype = (u8)id->driver_data;
+ 	dev->if_frequency = 5000000; /* default value of property 0x0706 */
+--- a/drivers/media/tuners/si2157.h
++++ b/drivers/media/tuners/si2157.h
+@@ -11,29 +11,34 @@
+ #include <media/media-device.h>
+ #include <media/dvb_frontend.h>
+ 
+-/*
+- * I2C address
+- * 0x60
++/**
++ * struct si2157_config - configuration parameters for si2157
++ *
++ * @fe:
++ *	frontend returned by driver
++ * @mdev:
++ *	media device returned by driver
++ * @inversion:
++ *	spectral inversion
++ * @dont_load_firmware:
++ *	Instead of uploading a new firmware, use the existing one
++ * @if_port:
++ *	Port selection
++ *	Select the RF interface to use (pins 9+11 or 12+13)
++ *
++ * Note:
++ *	The I2C address of this demod is 0x60.
+  */
+ struct si2157_config {
+-	/*
+-	 * frontend
+-	 */
+ 	struct dvb_frontend *fe;
+ 
+ #if defined(CONFIG_MEDIA_CONTROLLER)
+ 	struct media_device *mdev;
+ #endif
+ 
+-	/*
+-	 * Spectral Inversion
+-	 */
+-	bool inversion;
++	unsigned int inversion:1;
++	unsigned int dont_load_firmware:1;
+ 
+-	/*
+-	 * Port selection
+-	 * Select the RF interface to use (pins 9+11 or 12+13)
+-	 */
+ 	u8 if_port;
+ };
+ 
+--- a/drivers/media/tuners/si2157_priv.h
++++ b/drivers/media/tuners/si2157_priv.h
+@@ -23,8 +23,9 @@
+ struct si2157_dev {
+ 	struct mutex i2c_mutex;
+ 	struct dvb_frontend *fe;
+-	bool active;
+-	bool inversion;
++	unsigned int active:1;
++	unsigned int inversion:1;
++	unsigned int dont_load_firmware:1;
+ 	u8 chiptype;
+ 	u8 if_port;
+ 	u32 if_frequency;
+--- a/drivers/media/usb/dvb-usb-v2/af9035.c
++++ b/drivers/media/usb/dvb-usb-v2/af9035.c
+@@ -1197,6 +1197,15 @@
+ 	return ret;
+ }
+ 
++/*
++ * The I2C speed register is calculated with:
++ *	I2C speed register = (1000000000 / (24.4 * 16 * I2C_speed))
++ *
++ * The default speed register for it930x is 7, with means a
++ * speed of ~366 kbps
++ */
++#define I2C_SPEED_366K 7
++
+ static int it930x_frontend_attach(struct dvb_usb_adapter *adap)
+ {
+ 	struct state *state = adap_to_priv(adap);
+@@ -1208,13 +1217,13 @@
+ 
+ 	dev_dbg(&intf->dev, "adap->id=%d\n", adap->id);
+ 
+-	/* I2C master bus 2 clock speed 300k */
+-	ret = af9035_wr_reg(d, 0x00f6a7, 0x07);
++	/* I2C master bus 2 clock speed 366k */
++	ret = af9035_wr_reg(d, 0x00f6a7, I2C_SPEED_366K);
+ 	if (ret < 0)
+ 		goto err;
+ 
+-	/* I2C master bus 1,3 clock speed 300k */
+-	ret = af9035_wr_reg(d, 0x00f103, 0x07);
++	/* I2C master bus 1,3 clock speed 366k */
++	ret = af9035_wr_reg(d, 0x00f103, I2C_SPEED_366K);
+ 	if (ret < 0)
+ 		goto err;
+ 
+@@ -1610,6 +1619,27 @@
+ 
+ 	memset(&si2157_config, 0, sizeof(si2157_config));
+ 	si2157_config.fe = adap->fe[0];
++
++	/*
++	 * HACK: The Logilink VG0022A and TerraTec TC2 Stick have
++	 * a bug: when the si2157 firmware that came with the device
++	 * is replaced by a new one, the I2C transfers to the tuner
++	 * will return just 0xff.
++	 *
++	 * Probably, the vendor firmware has some patch specifically
++	 * designed for this device. So, we can't replace by the
++	 * generic firmware. The right solution would be to extract
++	 * the si2157 firmware from the original driver and ask the
++	 * driver to load the specifically designed firmware, but,
++	 * while we don't have that, the next best solution is to just
++	 * keep the original firmware at the device.
++	 */
++	if ((le16_to_cpu(d->udev->descriptor.idVendor) == USB_VID_DEXATEK &&
++	     le16_to_cpu(d->udev->descriptor.idProduct) == 0x0100) ||
++	    (le16_to_cpu(d->udev->descriptor.idVendor) == USB_VID_TERRATEC &&
++	     le16_to_cpu(d->udev->descriptor.idProduct) == USB_PID_TERRATEC_CINERGY_TC2_STICK))
++		si2157_config.dont_load_firmware = true;
++
+ 	si2157_config.if_port = it930x_addresses_table[state->it930x_addresses].tuner_if_port;
+ 	ret = af9035_add_i2c_dev(d, "si2157",
+ 				 it930x_addresses_table[state->it930x_addresses].tuner_i2c_addr,
+@@ -2121,6 +2151,10 @@
+ 		&it930x_props, "ITE 9303 Generic", NULL) },
+ 	{ DVB_USB_DEVICE(USB_VID_AVERMEDIA, USB_PID_AVERMEDIA_TD310,
+ 		&it930x_props, "AVerMedia TD310 DVB-T2", NULL) },
++	{ DVB_USB_DEVICE(USB_VID_DEXATEK, 0x0100,
++		&it930x_props, "Logilink VG0022A", NULL) },
++	{ DVB_USB_DEVICE(USB_VID_TERRATEC, USB_PID_TERRATEC_CINERGY_TC2_STICK,
++		&it930x_props, "TerraTec Cinergy TC2 Stick", NULL) },
+ 	{ }
+ };
+ MODULE_DEVICE_TABLE(usb, af9035_id_table);
+--- a/include/media/dvb-usb-ids.h
++++ b/include/media/dvb-usb-ids.h
+@@ -180,6 +180,7 @@
+ #define USB_PID_TERRATEC_CINERGY_T_STICK_RC		0x0097
+ #define USB_PID_TERRATEC_CINERGY_T_STICK_DUAL_RC	0x0099
+ #define USB_PID_TERRATEC_CINERGY_T_STICK_BLACK_REV1	0x00a9
++#define USB_PID_TERRATEC_CINERGY_TC2_STICK		0x10b2
+ #define USB_PID_TWINHAN_VP7041_COLD			0x3201
+ #define USB_PID_TWINHAN_VP7041_WARM			0x3202
+ #define USB_PID_TWINHAN_VP7020_COLD			0x3203
+@@ -425,4 +426,5 @@
+ #define USB_PID_EVOLVEO_XTRATV_STICK			0xa115
+ #define USB_PID_HAMA_DVBT_HYBRID			0x2758
+ #define USB_PID_XBOX_ONE_TUNER                          0x02d5
++#define USB_PID_PROLECTRIX_DV107669                     0xd803
+ #endif

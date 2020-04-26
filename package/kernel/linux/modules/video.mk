@@ -394,7 +394,7 @@ $(eval $(call KernelPackage,drm-radeon))
 define KernelPackage/video-core
   SUBMENU:=$(VIDEO_MENU)
   TITLE=Video4Linux support
-  DEPENDS:=@PCI_SUPPORT||USB_SUPPORT +PACKAGE_kmod-i2c-core:kmod-i2c-core
+  DEPENDS:=@PCI_SUPPORT||USB_SUPPORT +PACKAGE_kmod-i2c-core:kmod-i2c-core +PACKAGE_kmod-media-controller:kmod-media-controller
   KCONFIG:= \
 	CONFIG_MEDIA_SUPPORT \
 	CONFIG_MEDIA_CAMERA_SUPPORT=y \
@@ -1025,3 +1025,49 @@ define KernelPackage/video-gspca-konica/description
 endef
 
 $(eval $(call KernelPackage,video-gspca-konica))
+
+define KernelPackage/media-controller
+  SUBMENU:=$(VIDEO_MENU)
+  TITLE:=Media Controller Support
+  DEPENDS:=+kmod-video-core
+  KCONFIG:= CONFIG_MEDIA_CONTROLLER=y
+  FILES:= $(LINUX_DIR)/drivers/media/mc/mc.ko
+  AUTOLOAD:=$(call AutoProbe,mc)
+endef
+
+define KernelPackage/media-controller/description
+ Media Controller support
+endef
+
+$(eval $(call KernelPackage,media-controller))
+
+define KernelPackage/terratec-tc2
+  SUBMENU:=$(VIDEO_MENU)
+  TITLE:=terratec tc2 support
+  DEPENDS:=+kmod-i2c-mux +kmod-input-core +kmod-video-core +kmod-nls-base +kmod-regmap-i2c +kmod-usb-core +kmod-video-videobuf2 +kmod-video-uvc +kmod-media-controller
+  KCONFIG:= \
+  	CONFIG_MEDIA_DIGITAL_TV_SUPPORT=y \
+	CONFIG_MEDIA_CONTROLLER_DVB=y \
+	CONFIG_MEDIA_SUBDRV_AUTOSELECT=y \
+	CONFIG_DVB_NET=y \
+	CONFIG_MEDIA_TUNER_SI2157 \
+	CONFIG_DVB_SI2168 \
+	CONFIG_DVB_USB_AF9035 \
+	CONFIG_DVB_USB_V2 \
+	CONFIG_DVB_CORE \
+	CONFIG_RC_CORE
+  FILES:= \
+	$(LINUX_DIR)/drivers/media/tuners/si2157.ko \
+	$(LINUX_DIR)/drivers/media/dvb-frontends/si2168.ko \
+	$(LINUX_DIR)/drivers/media/usb/dvb-usb-v2/dvb-usb-af9035.ko \
+	$(LINUX_DIR)/drivers/media/usb/dvb-usb-v2/dvb_usb_v2.ko \
+	$(LINUX_DIR)/drivers/media/dvb-core/dvb-core.ko \
+	$(LINUX_DIR)/drivers/media/rc/rc-core.ko
+  AUTOLOAD:=$(call AutoProbe,rc-core dvb-core dvb_usb_v2 dvb-usb-af9035 si2168 si2157)
+endef
+
+define KernelPackage/terratec-tc2/description
+ Kernel modules for Terratec TC2
+endef
+
+$(eval $(call KernelPackage,terratec-tc2))
